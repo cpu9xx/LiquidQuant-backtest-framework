@@ -2,7 +2,6 @@
 from enum import Enum
 from collections import defaultdict
 
-
 class Event(object):
     def __init__(self, event_type, **kwargs):
         self.__dict__ = kwargs

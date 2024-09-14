@@ -14,7 +14,7 @@ from .events import EVENT, Event
 from .globalVars import GlobalVars
 from .CodeLoader import CodeLoader
 from .strategy_context import StrategyContext
-from .api import Scheduler
+from .api import Scheduler, Setting, Data
 from . import api
 import datetime
 
@@ -41,11 +41,22 @@ def run_file(strategy_file_path):
     })
     
     env.current_dt =  datetime.datetime.strptime(env.usercfg['start'], "%Y-%m-%d")
-    context = StrategyContext()
+    env.load_data(if_load=True)
+    # env.load_data(if_load=False)
+
+    context = StrategyContext(start_cash=env.usercfg['start_cash'])
+
     scheduler = Scheduler()
+    data = Data()
+    setting = Setting()
+
     scheduler.set_user_context(context)
-    
+    data.set_user_context(context)
+    setting.set_user_context(context)
+
     api._scheduler = scheduler
+    api._data = data
+    api._setting = setting
 
     initialize = scope.get('initialize', None)
     initialize(context)

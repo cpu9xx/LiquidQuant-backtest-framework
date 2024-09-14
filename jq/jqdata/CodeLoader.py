@@ -11,7 +11,7 @@ class CodeLoader:
         # exec_(code, scope)
         exec(code, scope)
         return scope
-    #
+    
     def load(self, scope):
         with codecs.open(self._strategyfile, encoding="utf-8") as h:
             source_code = h.read()
