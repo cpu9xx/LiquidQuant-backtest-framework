@@ -23,7 +23,7 @@ After backtesting, the profit and loss curve will be automatically presented lik
 # Todo
 - support limit order
 - support dynamic restoration of rights
-- support other data feeds.
+- support other data feeds
 - provide additional APIs for training and testing machine learning models
 - provide automatic metric calculations
 
