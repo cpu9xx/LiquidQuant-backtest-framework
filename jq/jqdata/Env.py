@@ -23,7 +23,7 @@ from .gate import MySQL_gate
 db_config = {
     "host": "localhost",
     "user": "root",
-    "password": "137137a",
+    "password": "yourpassword",
 }
 
 def shift_str_date(date_str: str, days_delta: int):
