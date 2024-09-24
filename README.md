@@ -9,9 +9,9 @@ To use this framework, you should have access to two MySQL databases, named 'sto
 
 ## Strategy
 Develop your strategy in userStrategy.py, then run the following to backtest:
-'
+```
 python run.py
-'
+```
 
 
 # Todo
