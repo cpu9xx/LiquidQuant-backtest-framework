@@ -12,7 +12,10 @@ Develop your strategy in userStrategy.py, then run the following to backtest:
 ```
 python run.py
 ```
-
+After backtesting, the profit and loss curve will be automatically presented like this:
+<p align="center">
+  <img src ="https://vnpy.oss-cn-shanghai.aliyuncs.com/github_wx.png"/, width=250>
+</p>
 
 # Todo
 - support limit order
