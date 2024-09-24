@@ -7,6 +7,8 @@ Joinquant(www.joinquant.com) is an online powerful backtesting framework that is
 ## Datafeed
 To use this framework, you should have access to two MySQL databases, named 'stock' and 'index'. The 'stock' database should contain tables, and each table contains time series data for one stock. Ensure the table name is like 'xxxxxx.sz' (Shenzhen Exchange) or 'xxxxxx.sh' (Shanghai Exchange). Similarly, the 'index' database should contain indexes such as CSI 300.
 
+You can construct your MySQL databases easily using https://github.com/cpu9xx/MySQLdb-Initial-and-Update-based-on-Tushare.
+
 ## Strategy
 Develop your strategy in userStrategy.py. If it is the first time loading data, set the "if_load_data" in "userconfig" dict to False. Once you load, a new pickle file named 'data.pkl' will be created, it is used for save data loading time. Then you can directly load data from 'data.pkl' rather than the database by setting "if_load_data" to True. Run the following to backtest:
 ```
