@@ -8,13 +8,14 @@ Joinquant(www.joinquant.com) is an online powerful backtesting framework that is
 To use this framework, you should have access to two MySQL databases, named 'stock' and 'index'. The 'stock' database should contain tables, and each table contains time series data for one stock. Ensure the table name is like 'xxxxxx.sz' (Shenzhen Exchange) or 'xxxxxx.sh' (Shanghai Exchange). Similarly, the 'index' database should contain indexes such as CSI 300.
 
 ## Strategy
-Develop your strategy in userStrategy.py, then run the following to backtest:
+Develop your strategy in userStrategy.py. If it is the first time loading data, set the "if_load_data" in "userconfig" dict to False. Once you load, a new pickle file named 'data.pkl' will be created, it is used for save data loading time. Then you can directly load data from 'data.pkl' rather than the database by setting "if_load_data" to True. Run the following to backtest:
 ```
 python run.py
 ```
+
 After backtesting, the profit and loss curve will be automatically presented like this:
 <p align="center">
-  <img src ="https://vnpy.oss-cn-shanghai.aliyuncs.com/github_wx.png"/, width=250>
+  <img src ="https://github.com/cpu9xx/LiquidQuant-backtest-framework/blob/main/pnl.png"/, width=250>
 </p>
 
 # Todo
