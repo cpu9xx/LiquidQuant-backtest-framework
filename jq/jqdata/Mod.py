@@ -23,6 +23,6 @@ class ModHandler(object):
         for mod_name in self._mod_list:
             #动态加载模块
             mod = import_module(mod_name)
-            for i in mod.__all__:
-                i(self._env.event_bus)
+            for api in mod.__all__:
+                api(self._env.event_bus)
 

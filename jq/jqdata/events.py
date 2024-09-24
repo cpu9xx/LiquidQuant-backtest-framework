@@ -15,18 +15,17 @@ class Event(object):
 class EventBus(object):
     def __init__(self):
         self._listeners = defaultdict(list)
-        print(self._listeners)
 
-    def add_listener(self, event, listener):
-        self._listeners[event].append(listener)
+    def add_listener(self, event_type, listener):
+        self._listeners[event_type].append(listener)
 
-    def prepend_listener(self, event, listener):
-        self._listeners[event].insert(0, listener)
+    def prepend_listener(self, event_type, listener):
+        self._listeners[event_type].insert(0, listener)
 
     def publish_event(self, event):
-        for l in self._listeners[event.event_type]:
+        for listener in self._listeners[event.event_type]:
             # listener 返回 True ，那么消息不再传递下去，否则继续传递
-            if l(event):
+            if listener(event):
                 break
 
 class EVENT(Enum):
@@ -36,6 +35,11 @@ class EVENT(Enum):
     FUTURE = 'future'
     #事件
     TIME = 'time'
+    
+    STOCK_ORDER = 'stock_order'
+    MARKET_CLOSE ='market_close'
+    FIRST_TICK = 'first_tick'
+    # GET_TRADES = 'get_trades'
 
 # print(parse_event('stock'))   # 输出: EVENT.STOCK
 def parse_event(event_str):

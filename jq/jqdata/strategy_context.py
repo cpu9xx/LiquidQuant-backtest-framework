@@ -1,18 +1,55 @@
 from collections import defaultdict
-
+from .Env import Env
+from .logger import log
+import datetime
 class Position:
     def __init__(self):
         self.security = None
-        self.price = None
-        self.avg_cost = None
+        self.avg_cost = 0
         self.init_time = None
         self.transact_time = None
-        self.total_amount = None
-        self.closeable_amount = None
-        self.value = None
+        self.total_amount = 0
+        self.closeable_amount = 0
+
+    def init_position(self, security, avg_cost, init_time, amount):
+        self.security = security
+        self.avg_cost = avg_cost
+        self.init_time = init_time
+        self.transact_time = init_time
+        self.total_amount = amount
+        self.closeable_amount = 0
+    
+    def close_position(self, amount, time):
+        self.total_amount -= amount
+        self.transact_time = time
+        
+    def update_closeable_amount(self, amount=None):
+        if amount is None:
+            amount = self.total_amount
+        self.closeable_amount = amount
+
+
+    @property
+    def price(self):
+        # 访问 self.price 时会自动调用这个函数
+        env = Env.get_instance()
+        dtime = env.current_dt
+        if datetime.time(9, 30) <= dtime.time() < datetime.time(15, 0):
+            field = 'open'
+        else:
+            field = 'close'
+
+        if datetime.time(0, 0) <= dtime.time() < datetime.time(9, 30):
+            dtime += datetime.timedelta(days=-1, hours=0, minutes=0)
+
+        return env.data[self.security].loc[dtime.date():dtime.date(), [field]].iloc[-1][field]
+    
+    @property
+    def value(self):
+        return self.total_amount * self.price
 
     def __repr__(self):
-        return f"UserPosition({self.security})"
+        return f"UserPosition({self.security}, avgcost={self.avg_cost}, total_amount={self.total_amount}, closeable_amount={self.closeable_amount}, init_time={self.init_time}, transact_time={self.transact_time})"
 
 class Params():
     def __init__(self):
@@ -21,14 +58,47 @@ class Params():
         self.type = None
         self.frequency = None
 
+class AutoRemoveDefaultDict(defaultdict):
+    def __init__(self, default_factory):
+        super().__init__(default_factory)
+        self.protected_keys = set()
+
+    def __getitem__(self, key):
+        value = super().__getitem__(key)
+        value.security = key
+        if key not in self.protected_keys:
+            del self[key]
+        return value
+
+    def create_key(self, key):
+        self.protected_keys.add(key)
+
+    def remove_key(self, key):
+        if key in self.protected_keys:
+            self.protected_keys.remove(key)
+        if key in self:
+            del self[key]
+
 class Portfolio():
     def __init__(self, start_cash):
-        self.positions = defaultdict(lambda: Position())
-        self.available_cash = None
-        self.total_value = None
-        self.returns = None
+        self.positions = AutoRemoveDefaultDict(lambda: Position())
+        self.available_cash = start_cash
         self.starting_cash = start_cash
-        self.positions_value = None
+
+    @property
+    def positions_value(self):
+        pvalue = 0
+        for position in self.positions.values():
+            pvalue += position.value
+        return pvalue
+    
+    @property
+    def total_value(self):
+        return self.positions_value + self.available_cash
+    
+    @property
+    def returns(self):
+        return self.total_value/self.starting_cash - 1
 
 class StrategyContext():
     _context = None

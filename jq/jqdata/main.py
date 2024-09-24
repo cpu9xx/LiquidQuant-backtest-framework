@@ -8,13 +8,18 @@
 # import api
 # from api import Scheduler
 # import datetime
+from . import logger
 from .Env import Env, config
 from .Mod import ModHandler
 from .events import EVENT, Event
 from .globalVars import GlobalVars
 from .CodeLoader import CodeLoader
 from .strategy_context import StrategyContext
-from .api import Scheduler, Setting, Data
+from .recorder import Recorder
+from .scheduler import Scheduler
+from .broker import Broker
+from .strategy import Strategy
+from .setting import Setting
 from . import api
 import datetime
 
@@ -33,42 +38,45 @@ def run_file(strategy_file_path):
     # scope = {}
     scope = {'__name__': 'userStrategy'}
     scope = loader.load(scope)
-
+    context = StrategyContext(start_cash=env.usercfg['start_cash'])
     env.set_global_vars(GlobalVars())
+
+    logger.log.set_env(env)
+
     scope.update({
-        "g": env.global_vars
+        "g": env.global_vars,
+        "log": logger.log,
 
     })
     
     env.current_dt =  datetime.datetime.strptime(env.usercfg['start'], "%Y-%m-%d")
-    env.load_data(if_load=True)
-    # env.load_data(if_load=False)
+    context.current_dt = env.current_dt
+    env.load_data()
 
-    context = StrategyContext(start_cash=env.usercfg['start_cash'])
-
+    recorder = Recorder()
+    strategy = Strategy()
+    broker = Broker()
     scheduler = Scheduler()
-    data = Data()
-    setting = Setting()
+    data = api.Data()
 
+    recorder.set_user_context(context)
+    api.setting.set_user_context(context)
+    strategy.set_user_context(context)
+    broker.set_user_context(context)
     scheduler.set_user_context(context)
     data.set_user_context(context)
-    setting.set_user_context(context)
+    
 
+    api._strategy = strategy
+    api._broker = broker
     api._scheduler = scheduler
     api._data = data
-    api._setting = setting
+    
 
     initialize = scope.get('initialize', None)
     initialize(context)
 
-    data = {}
-    f1 = scope.get('handle_data', None)
-    f1(context,data)
+    scheduler.start_event_src(reference_security=api.setting.get_benchmark())
 
+    recorder.plot()
 
-
-
-    #事件发布
-    # event_bus = env.event_bus
-    # event_bus.publish_event(Event(EVENT.STOCK))
-    # event_bus.publish_event(Event(EVENT.FUTURE))
