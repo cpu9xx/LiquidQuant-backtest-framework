@@ -17,7 +17,7 @@ python run.py
 
 After backtesting, the profit and loss curve will be automatically presented like this:
 <p align="center">
-  <img src ="https://github.com/cpu9xx/LiquidQuant-backtest-framework/blob/main/pnl.png"/, width=250>
+  <img src ="https://github.com/cpu9xx/LiquidQuant-backtest-framework/blob/main/doubleMA.png"/, width=250>
 </p>
 
 # Todo
