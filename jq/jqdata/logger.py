@@ -1,4 +1,5 @@
 from .Env import Env
+from datetime import datetime
 class Log:
     def __init__(self):
         try:
@@ -8,6 +9,9 @@ class Log:
 
     def set_env(self, environment):
         self._env = environment
+
+    def set_level(self, *val):
+        self.warning("暂不支持设置日志级别")
 
     def info(self, message):
         print(f"--{self._env.current_dt} : {message}")
@@ -22,5 +26,10 @@ class Log:
     def test(self, *messages):
         combined_message = ' '.join(map(str, messages))
         print(f"\033[34m--{self._env.current_dt} : {combined_message}\033[0m")
+
+    # @classmethod
+    def live(self, *messages):
+        combined_message = ' '.join(map(str, messages))
+        print(f"\033[33m--{datetime.now()} : {combined_message}\033[0m")
 
 log = Log()

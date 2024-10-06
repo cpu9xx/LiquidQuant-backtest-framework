@@ -1,27 +1,12 @@
 from .Env import Env
 from .events import Event, EVENT
 from .logger import log
+from .api import setting
+from .object import TIME
+
 import datetime
 from collections import defaultdict
-from enum import Enum
 
-class TIME(Enum):
-    BEFORE_OPEN = datetime.time(9, 0)
-    OPEN = datetime.time(9, 30)
-    CLOSE = datetime.time(15, 0)
-    AFTER_CLOSE = datetime.time(15, 30)
-    DAY_END = datetime.time(23, 59)
-
-    @property
-    def hour(self):
-        return self.value.hour
-
-    @property
-    def minute(self):
-        return self.value.minute
-
-    def __str__(self):
-        return self.value.strftime("%H:%M")
     
 
 class Scheduler(object):
@@ -36,7 +21,7 @@ class Scheduler(object):
         self._ucontext = None
         self.event_src = defaultdict(lambda: defaultdict(list))
         # self._frequency = frequency
-        env = Env.get_instance()
+        env = Env()
         self.start = datetime.datetime.strptime(env.usercfg['start'], "%Y-%m-%d")
         self.end = datetime.datetime.strptime(env.usercfg['end'], "%Y-%m-%d")
         event_bus = env.event_bus
@@ -51,10 +36,10 @@ class Scheduler(object):
         self._ucontext = ucontext
 
     def _run_daily(self, func, time, reference_security):
-        env = Env.get_instance()
-        trade_dates = env.index_data[reference_security].index
+        env = Env()
 
-        # 触发初始化
+        trade_dates = env.index_data[reference_security].loc[self.start:self.end, :].index
+        # FIRST_TICK触发初始化
         first_tick_time = trade_dates[0] + datetime.timedelta(days=0, hours=TIME.OPEN.hour, minutes=TIME.OPEN.minute)
         self.event_src[trade_dates[0]][TIME.OPEN].append(Event(EVENT.FIRST_TICK, func=None, time=first_tick_time))
 
@@ -63,13 +48,13 @@ class Scheduler(object):
             t = date + datetime.timedelta(days=0, hours=time_type.hour, minutes=time_type.minute)
             self.event_src[date][time_type].append(Event(EVENT.TIME, func=func, time=t))
 
-    def start_event_src(self, reference_security):
-        env = Env.get_instance()
+
+    def start_event_src(self):
+        env = Env()
         event_bus = env.event_bus
         # for i in range((self.end - self.start).days + 1): 
         #     date = self.start + datetime.timedelta(days=i)
-
-        for date in env.index_data[reference_security].index:
+        for date in env.trade_dates:
             events_dict = self.event_src.get(date, {})
             for time_type in TIME:
                 events = events_dict.get(time_type, [])
@@ -77,7 +62,15 @@ class Scheduler(object):
                     time = event.__dict__['time']
                     if self._ucontext.current_dt:
                         assert time >= self._ucontext.current_dt
-                        self._ucontext.previous_date = self._ucontext.current_dt.date()
+                        if time.date() > self._ucontext.current_dt.date():
+                            self._ucontext.previous_date = self._ucontext.current_dt.date()
+                    else:
+                        # 第一个事件触发前，获取回测范围外的前一个交易日
+                        benchmark = setting.get_benchmark()
+                        start_position = env.index_data[benchmark].index.get_loc(env.trade_dates[0])
+                        self._ucontext.previous_date = env.index_data[benchmark].index[start_position-1].date()
+
+                    # 回测范围内的第一个交易日，first_tick
                     self._ucontext.current_dt = time
                     env.current_dt = time
                     event_bus.publish_event(event)

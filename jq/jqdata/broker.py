@@ -47,7 +47,7 @@ class Broker(object):
     def __init__(self):
         # Broker._broker = self
         self._ucontext = None
-        self._env = Env.get_instance()
+        self._env = Env()
         self._order_recieved = defaultdict(list)
         self._trades = defaultdict(dict)
         # self.start = datetime.datetime.strptime(env.usercfg['start'], "%Y-%m-%d")
@@ -97,9 +97,8 @@ class Broker(object):
     def _trading(self, event):
         order = event.__dict__['order']
         ordertime = order.add_time
-
-        data_date = self._env.data[order.security].loc[self._ucontext.current_dt.date():self._ucontext.current_dt.date(), ['date', 'open', 'close', 'high', 'low']]
-        if len(data_date) == 0:
+        data_date = self._env.data[order.security][self._ucontext.current_dt, 'date'][0]
+        if data_date is None:
             order.reject()
             log.warning(f"停牌无法成交：{order.security}")
             return True

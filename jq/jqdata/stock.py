@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import random
 from .events import EVENT
 from .strategy_context import StrategyContext
 __all__ = [

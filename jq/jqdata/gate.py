@@ -43,18 +43,22 @@ class MySQL_gate():
 
     def get_tables(self, db='stock'):
         query = f"SHOW TABLES;"
-        df = self.execute_query(query, db, commit=False)
+        df = pd.DataFrame(self.execute_query(query, db, commit=False))
         return df
 
     def read_data_date(self, tablename, db='stock', days=1):
         query = f"SELECT * FROM `{tablename}` ORDER BY trade_date DESC LIMIT {days}"
-        df = self.execute_query(query, db, commit=False)
+        df = pd.DataFrame(self.execute_query(query, db, commit=False))
         return df
     
     def read_df(self, tablename, db='stock'):
         query = f"SELECT * FROM `{tablename}` WHERE trade_date >= '{self.start_date}' AND trade_date <= '{self.end_date}';"
-        df = self.execute_query(query, db, commit=False)
+        df = pd.DataFrame(self.execute_query(query, db, commit=False))
         return df
+    
+    def read(self, tablename, db='stock'):
+        query = f"SELECT * FROM `{tablename}` WHERE trade_date >= '{self.start_date}' AND trade_date <= '{self.end_date}';"
+        return self.execute_query(query, db, commit=False)
 
     def execute_query(self, query, db, commit=False):
         session = self.get_session(db)
@@ -64,8 +68,8 @@ class MySQL_gate():
             if commit:
                 session.commit()
             if result.returns_rows:
-                df = pd.DataFrame(result.fetchall())
-                return df
+                res = result.fetchall()
+                return res
             else:
                 return result.rowcount
         except Exception as e:

@@ -1,20 +1,10 @@
 from .Env import Env
+from .object import OrderStatus
 
 from enum import Enum
 import datetime
 
-class OrderStatus(Enum):
-    open = 0
-    partly_filled = 1
-    canceled = 2
-    rejected = 3
-    done = 4
-    held = 6
-    expired = 5
-    new = 8
-    pending_cancel = 9
     
-
 class UserOrder(object):
     _order_id = 0
     def __init__(self, security, amount, add_time):
@@ -36,7 +26,7 @@ class UserOrder(object):
     def price(self):
         # 访问 self.price 时会自动调用这个函数
         if self._price is None:
-            env = Env.get_instance()
+            env = Env()
             dtime = env.current_dt
             if datetime.time(9, 30) <= dtime.time() < datetime.time(15, 0):
                 field = 'open'
@@ -45,7 +35,7 @@ class UserOrder(object):
 
             if datetime.time(0, 0) <= dtime.time() < datetime.time(9, 30):
                 dtime += datetime.timedelta(days=-1, hours=0, minutes=0)
-            self._price =  env.data[self.security].loc[dtime.date():dtime.date(), [field]].iloc[-1][field]
+            self._price =  env.data[self.security][dtime, field][0]
         return self._price
 
     def is_buy(self):

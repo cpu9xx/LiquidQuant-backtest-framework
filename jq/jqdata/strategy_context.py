@@ -32,7 +32,7 @@ class Position:
     @property
     def price(self):
         # 访问 self.price 时会自动调用这个函数
-        env = Env.get_instance()
+        env = Env()
         dtime = env.current_dt
         if datetime.time(9, 30) <= dtime.time() < datetime.time(15, 0):
             field = 'open'
@@ -41,8 +41,8 @@ class Position:
 
         if datetime.time(0, 0) <= dtime.time() < datetime.time(9, 30):
             dtime += datetime.timedelta(days=-1, hours=0, minutes=0)
-
-        return env.data[self.security].loc[dtime.date():dtime.date(), [field]].iloc[-1][field]
+        # print(env.data[self.security][dtime, field][0])
+        return env.data[self.security][dtime, field][0]
     
     @property
     def value(self):
@@ -67,6 +67,7 @@ class AutoRemoveDefaultDict(defaultdict):
         value = super().__getitem__(key)
         value.security = key
         if key not in self.protected_keys:
+            log.warning(f"Security(code={key}) 在 positions 中不存在, 为了保持兼容, 我们返回空的 Position 对象, amount/price/avg_cost/acc_avg_cost 都是 0")
             del self[key]
         return value
 

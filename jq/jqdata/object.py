@@ -1,0 +1,263 @@
+import numpy as np
+import pandas as pd
+from typing import Union
+import datetime
+from enum import Enum
+
+class OrderStatus(Enum):
+    open = 0
+    partly_filled = 1
+    canceled = 2
+    rejected = 3
+    done = 4
+    held = 6
+    expired = 5
+    new = 8
+    pending_cancel = 9
+
+class TIME(Enum):
+    BEFORE_OPEN = datetime.time(9, 0)
+    OPEN = datetime.time(9, 30)
+    CLOSE = datetime.time(15, 0)
+    AFTER_CLOSE = datetime.time(15, 30)
+    DAY_END = datetime.time(23, 59)
+    DAY_START = datetime.time(23, 59)
+
+    @property
+    def hour(self):
+        return self.value.hour
+
+    @property
+    def minute(self):
+        return self.value.minute
+
+    def __str__(self):
+        return self.value.strftime("%H:%M")
+
+class Index:
+    def __init__(self, prev, this, next, timestamp):
+        object.__setattr__(self, "prev", prev)
+        object.__setattr__(self, "this", this)
+        object.__setattr__(self, "next", next)
+        # object.__setattr__(self, "timestamp", timestamp.timestamp())
+
+    def __repr__(self) -> str:
+        return f"({self.prev}, {self.this}, {self.next})"
+    
+    def __setattr__(self, name, value) -> None:
+        raise AttributeError("Index object is immutable")
+        
+
+class NumpyFrame:
+    def __init__(self, array, index_array=None, start_timestamp=None):
+        self.data = array
+        
+        self.index = index_array
+        # self.column = column
+        self.start_timestamp = start_timestamp
+        
+    
+    # def loc(self, index, column):
+    #     if self.index is not None:
+    #         index = self.index[index]
+    #     if self.column is not None:
+    #         column = self.column[column]
+    #     return self.data[index, column]
+    
+
+    # def iloc(self, index, column):
+    #     return self.data[index, column]
+    
+    def tail(self, n):
+        return self[-n:][0]
+    
+    def __getitem__(self, key) -> Union[np.ndarray, tuple]:
+        '''
+        根据日期datetime.datetime, pd.Timestamp或int获取个股数据
+        返回 (ndarray数据, 数据对应的起止日期)
+        '''
+
+        # 解构 key，它是一个包含行索引和列索引的元组
+        index, columns = key
+        # print(index)
+        # print(self.start_timestamp)
+        # print(f"data: {len(self.data)}, index: {len(self.index)}")
+        dt_start, dt_stop = None, None
+        # 处理索引映射
+        if self.index is not None:
+            if isinstance(index, slice):
+                # 对start映射
+                if index.start is None:
+                    dt_start = self.start_timestamp
+                    start = index.start
+                elif isinstance(index.start, int):
+                    dt_start = self.data['date'][index.start]
+                    # if index.start >= 0:
+                    #     dt_start = self.start_timestamp + pd.Timedelta(days=index.start)
+                    # else:
+                    #     dt_start = self.start_timestamp + pd.Timedelta(days=len(self.index)+index.start-1)
+
+                    start = index.start
+                else:
+                    offset = (index.start - self.start_timestamp).days
+                    # print(offset)
+                    # self.index[x] 是 Index 对象。
+                    if 0 <= offset < len(self.index):
+                        start = self.index[offset]
+                        if start.this is not None:
+                            start = start.this
+                            dt_start = self.data['date'][start]
+                            
+                        else:
+                            # start 非交易日，取下一个交易日
+                            start = start.next
+                            dt_start = self.data['date'][start]
+                            # for offs in range(offset+1, len(self.index)):
+                            #     next_valid_index = self.index[offs]
+                            #     assert next_valid_index.this <= start
+                            #     if next_valid_index.this == start:
+                            #         dt_start = next_valid_index.timestamp
+                            #         break
+                    elif offset < 0:
+                        start = 0
+                        dt_start = self.start_timestamp
+                    else:
+                        start = len(self.data)
+                        dt_start = index.start
+                    
+
+                # 对stop映射
+                if index.stop is None:
+                    dt_stop = self.start_timestamp + pd.Timedelta(days=len(self.index)-1)
+                    stop = None
+                elif isinstance(index.stop, int):
+                    dt_stop = self.data['date'][index.stop] 
+                    # if index.start >= 0:
+                    # if index.stop >= 0:
+                    #     dt_stop = self.start_timestamp + pd.Timedelta(days=index.stop-1) if index.stop >=0 else self.start_timestamp + pd.Timedelta(days=len(self.index)-1+index.stop)
+                    # else:
+                    #     dt_stop = self.start_timestamp + pd.Timedelta(days=len(self.index)+index.stop-1)
+                    stop = index.stop
+                else:
+                    offset = (index.stop - self.start_timestamp).days
+                    # print(offset)
+                    # self.index[x] 是 Index 对象
+                    if 0 <= offset < len(self.index):
+                        stop = self.index[offset]
+
+                        if stop.this is not None:
+                            # dt_stop = stop.timestamp
+                            stop = stop.this
+                            dt_stop = self.data['date'][stop]  
+                        else:
+                            # stop 非交易日，取前一个交易日
+                            stop = stop.prev# if stop.prev is not None else 0
+                            dt_stop = self.data['date'][stop] 
+                            # for offs in range(offset-1, -1, -1):
+                            #     prev_valid_index = self.index[offs]
+                            #     assert prev_valid_index.this >= stop
+                            #     if prev_valid_index.this == stop:
+                            #         dt_stop = prev_valid_index.timestamp
+                            #         break
+                    elif offset < 0:
+                        stop = -1
+                        dt_stop = index.stop
+                    else:
+                        stop = len(self.data)
+                        dt_stop = self.start_timestamp + pd.Timedelta(days=len(self.index)-1)
+
+                # 对stop进行修正, 包括右端点的值
+                if stop is not None:
+                    stop += 1
+                slice_index = slice(start, stop, index.step)
+
+                # 若请求日期与已有数据不重叠, 返回原始索引
+                if dt_start > dt_stop:
+                    dt_start, dt_stop = index.start, index.stop
+                # print(slice_index)
+
+                
+                return self.data[columns][slice_index], (dt_start, dt_stop)
+            elif isinstance(index, pd.Timestamp):
+                offset = (index - self.start_timestamp).days
+                int_index = self.index[offset]
+                if int_index.this is not None:
+                    int_index = int_index.this
+                else:
+                    from .logger import log
+                    log.warning(f"Index {index} is not a valid trading day, Index: {self.index[offset]}, returning data for previous trading day")
+                    int_index = int_index.prev
+                # index为int时, 先通过字段名访问columns，再通过索引访问index, 速度会快一倍, 而index为slice时速度没区别
+                return self.data[columns][int_index], index
+            else:
+                raise IndexError("Invalid index type: {index}")
+
+        # print(columns)
+        # 处理列映射
+        # if self.column is not None:
+        #     if isinstance(columns, list):
+        #         # 如果是列表，映射每个列名到对应的索引
+        #         columns = [self.column[col] for col in columns]
+        #     elif isinstance(columns, str):
+        #         # 如果是字符串，映射到对应的列索引
+        #         columns = self.column[columns]
+        #     else:
+        #         raise IndexError("Invalid columns type: {columns}")
+        # assert res.shape[0] == len(index)
+    
+    def __str__(self) -> str:
+        # return f"{self.data}\n index_map: {self.index}\n column_map: {self.column}"
+        start_length = 5
+        end_length = 5
+        index_map_str = f"{list(self.index)[:start_length]}...{list(self.index)[-end_length:]}"
+        # column_map_str = ', '.join(f"{k}: {v}" for k, v in list(self.column.items())[:max_entries_to_show])
+        return f"{self.data}\n index_map.keys(): {index_map_str}\n column_map: {self.data.dtype}"
+    
+    def __getstate__(self):
+        # Minimize the state to save; convert NumPy array to bytes to speed up serialization
+        state = {
+            'data': self.data,  # Convert NumPy array to bytes
+            'index': self.index,
+            # 'column': self.column,
+            'start_timestamp': self.start_timestamp.timestamp()
+        }
+        return state
+
+    def __setstate__(self, state):
+        # Restore the state
+
+        # data_dtype = state['data_dtype']
+
+        # self.data = np.empty(data_shape, dtype=data_dtype)
+        # print(state['data'].dtype)
+        # data_buffer = np.frombuffer(state['data'], dtype=data_dtype)
+        # np.copyto(self.data, data_buffer.reshape(data_shape))
+
+        # data = np.frombuffer(state['data'], dtype=data_dtype)#.reshape(data_shape)
+        # print(data.shape)
+        object.__setattr__(self, "data", state['data'])
+        object.__setattr__(self, "index", state['index'])
+        # object.__setattr__(self, "column", state['column'])
+        # print(pd.to_datetime(state['start_timestamp'], unit='s'))
+        object.__setattr__(self, "start_timestamp", pd.to_datetime(state['start_timestamp'], unit='s'))
+        # self.index = state['index']
+        # self.column = state['column']
+        
+if __name__ == '__main__':
+    # 示例数据
+    data = [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9]
+    ]
+
+    # 索引和列的映射
+    index_map = {'a': 2}
+    column_map = {'b': 1, 'c': 2}
+
+    # 创建 NumpyFrame 实例
+    df = NumpyFrame(data, index_map=index_map, column_map=column_map)
+
+    # 使用 loc 索引
+    result = df[:'a', ['b', 'c']]
+    print(result)
