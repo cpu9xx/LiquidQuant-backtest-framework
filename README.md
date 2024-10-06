@@ -1,3 +1,16 @@
+# 2024-10-6 UPDATE
+- Designed an efficient data structure (in object.py) for massive stock data and optimised the data query APIs, **significantly improved backtesting speed**.
+- Provided a new example strategy (in userStrategy.py), which is more complex and has a much bigger security pool than the double MA Strategy (in doublelines.py), to test the framework performance.
+- Optimised the Recorder module, now you can see details of the point if your mouse is near the pnl curves. Here is an example:
+<p align="center">
+  <img src ="https://github.com/cpu9xx/LiquidQuant-backtest-framework/blob/main/userstrategypnl.png"/, width=500>
+</p>
+
+- Log will be automatically generated after backtesting.
+- Separated userconfig setting from the workplace, now you can edit backtesting params more comfortably.
+- Added more APIs.
+- Fixed some bugs.
+
 # Objective
 This backtesting framework is designed for China's A-shares market, leveraging the advantages of Joinquant and Backtrader, based on my use experiences.
 
@@ -20,12 +33,6 @@ After backtesting, the profit and loss curve will be automatically presented lik
   <img src ="https://github.com/cpu9xx/LiquidQuant-backtest-framework/blob/main/doubleMApnl.png"/, width=500>
 </p>
 
-# Todo
-- support limit order
-- support dynamic restoration of rights
-- support other data feeds
-- provide additional APIs for training and testing machine learning models
-- provide automatic metric calculations
 
 # Requirements 
 - matplotlib==3.7.1
